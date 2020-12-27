@@ -40,6 +40,32 @@ task jacocoMergedReport(type: JacocoReport, dependsOn: [jacocoMerge]) {
         sourceDirectories.from(files([project.sourceSets.main.allJava.srcDirs]))
         classDirectories.from(project.sourceSets.main.output)
     }
+    reports {
+        xml.enabled = true
+        csv.enabled = true
+    }
+    doLast {
+        def xml = reports.xml.destination
+        def parser = new XmlParser()
+        parser.setFeature("http://apache.org/xml/features/disallow-doctype-decl", false)
+        parser.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false)
+        def xmlReport = parser.parse(xml)
+        def toRow = {
+            def covered = it.@covered
+            def missed = it.@missed
+            def type = it.@type
+            def total = (covered as int) + (missed as int)
+            def percentage = ((covered as float) / (total as float) * 100)
+            return type.toLowerCase().padRight(11) + ":" + covered.padLeft(3) + " / " + (total as String).padLeft(3) + "(" + String.format("%.2f", percentage) + "%)"
+        }
+        def summary = file(xml.parent + "/jacoco-summary.txt")
+        if (summary.exists()) {
+            summary.delete()
+        }
+        xmlReport.counter.forEach {
+            summary << toRow(it) + "\n"
+        }
+    }
 }
 
 jacocoMerge.finalizedBy jacocoMergedReport
