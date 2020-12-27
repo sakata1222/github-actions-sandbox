@@ -30,7 +30,7 @@ jobs:
         with:
           script: |
             const fs = require('fs')
-            const report = fs.readFileSync('build/reports/jacoco/jacocoMergedReport/jacoco-summary.txt')
+            const report = fs.readFileSync('build/reports/jacoco/jacocoMergedReport/jacoco_summary.md')
             github.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,

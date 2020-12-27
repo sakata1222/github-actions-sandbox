@@ -50,21 +50,29 @@ task jacocoMergedReport(type: JacocoReport, dependsOn: [jacocoMerge]) {
         parser.setFeature("http://apache.org/xml/features/disallow-doctype-decl", false)
         parser.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false)
         def xmlReport = parser.parse(xml)
+        def targetTypes = ['INSTRUCTION', 'BRANCH']
         def toRow = {
             def covered = it.@covered
             def missed = it.@missed
             def type = it.@type
             def total = (covered as int) + (missed as int)
             def percentage = ((covered as float) / (total as float) * 100)
-            return type.toLowerCase().padRight(11) + ":" + covered.padLeft(3) + " / " + (total as String).padLeft(3) + "(" + String.format("%.2f", percentage) + "%)"
+            return "|" + type.toLowerCase().padRight(11) + "|" + missed.padLeft(3) + "/" + (total as String).padLeft(3) + "|" + String.format("%.2f", percentage) + "%|"
         }
-        def summary = file(xml.parent + "/jacoco-summary.txt")
+        def summary = file(xml.parent + "/jacoco_summary.md")
         if (summary.exists()) {
             summary.delete()
         }
-        xmlReport.counter.forEach {
-            summary << toRow(it) + "\n"
-        }
+        summary << "|Type|Missed/Total|Coverage(%)|\n"
+        summary << "|:---|---:|:---|\n"
+        xmlReport.counter
+                .stream()
+                .filter {
+                    targetTypes.contains(it.@type)
+                }
+                .forEach {
+                    summary << toRow(it) + "\n"
+                }
     }
 }
 
