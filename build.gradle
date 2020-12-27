@@ -1,3 +1,6 @@
+import groovy.json.JsonBuilder
+import groovy.json.JsonSlurper
+
 plugins {
     id "com.github.spotbugs" version "4.6.0"
     id 'jacoco'
@@ -51,28 +54,62 @@ task jacocoMergedReport(type: JacocoReport, dependsOn: [jacocoMerge]) {
         parser.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false)
         def xmlReport = parser.parse(xml)
         def targetTypes = ['INSTRUCTION', 'BRANCH']
-        def toRow = {
+        def toObj = {
+            def type = it.@type
             def covered = it.@covered
             def missed = it.@missed
-            def type = it.@type
             def total = (covered as int) + (missed as int)
             def percentage = ((covered as float) / (total as float) * 100)
-            return "|" + type.toLowerCase().padRight(11) + "|" + missed.padLeft(3) + "/" + (total as String).padLeft(3) + "|" + String.format("%.2f", percentage) + "%|"
+            return [
+                    'type'      : type,
+                    'covered'   : covered as int,
+                    'missed'    : missed as int,
+                    'total'     : total as int,
+                    'percentage': percentage
+            ]
         }
-        def summary = file(xml.parent + "/jacoco_summary.md")
-        if (summary.exists()) {
-            summary.delete()
+        def toRow = { current, prev ->
+            def type = current.type
+            def toMissedCol = {
+                (it.missed as String) + "/" + (it.total as String)
+            }
+            def toPercentageCol = {
+                String.format("%.2f", it.percentage)
+            }
+            if (prev == null || prev == current) {
+                return "|" + type.toLowerCase() +
+                        "|" + toMissedCol(current) +
+                        "|" + toPercentageCol(current) + "%|"
+            } else {
+                return "|" + type.toLowerCase() +
+                        "|~~" + toMissedCol(prev) + "~~ " + toMissedCol(current) +
+                        "|~~" + toPercentageCol(prev) + "~~ " + toPercentageCol(current) + "%|"
+            }
         }
-        summary << "|Type|Missed/Total|Coverage(%)|\n"
-        summary << "|:---|---:|:---|\n"
+        def summaryJson = file(xml.parent + "/jacoco_summary.json")
+        def prevSummaryJson
+        if (summaryJson.exists()) {
+            prevSummaryJson = new JsonSlurper().parseText(summaryJson.text)
+        }
+        def summaryMd = file(xml.parent + "/jacoco_summary.md")
+        if (summaryMd.exists()) {
+            summaryMd.delete()
+        }
+        summaryMd << "|Type|Missed/Total|Coverage(%)|\n"
+        summaryMd << "|:---|---:|:---|\n"
+        def json = [:]
         xmlReport.counter
                 .stream()
                 .filter {
                     targetTypes.contains(it.@type)
                 }
                 .forEach {
-                    summary << toRow(it) + "\n"
+                    def obj = toObj(it)
+                    summaryMd << toRow(obj, prevSummaryJson?."${obj.type}") + "\n"
+                    json[obj.type] = obj
                 }
+
+        summaryJson.write new JsonBuilder(json).toPrettyString()
     }
 }
 
