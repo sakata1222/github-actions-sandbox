@@ -5,6 +5,8 @@
 plugins {
     // Apply the java Plugin to add support for Java.
     id 'java'
+    id 'jacoco'
+    id 'com.github.spotbugs'
 }
 
 repositories {
@@ -23,4 +25,16 @@ dependencies {
 tasks.named('test') {
     // Use junit platform for unit tests.
     useJUnitPlatform()
+    it.finalizedBy jacocoTestReport
+}
+
+tasks.named('jacocoTestReport') {
+    it.dependsOn test
+}
+
+tasks.matching { task -> task.name.startsWith('spotbugs') }.forEach {
+    it.reports {
+        html.enabled = true
+        xml.enabled = false
+    }
 }

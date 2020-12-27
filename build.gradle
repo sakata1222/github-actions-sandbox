@@ -1,0 +1,45 @@
+plugins {
+    id "com.github.spotbugs" version "4.6.0"
+    id 'jacoco'
+}
+
+repositories {
+    jcenter()
+}
+
+def isJacocoReportTarget(project) {
+    def excludes = ['utilities'] // this project does not have any tests
+    if (excludes.contains(project.name)) {
+        return false
+    }
+    if (project == project.rootProject) {
+        return false
+    }
+    if (!project.plugins.hasPlugin('jacoco')) {
+        return false
+    }
+    return true
+}
+
+task jacocoMerge(type: JacocoMerge) {
+    gradle.afterProject { project, state ->
+        if (!isJacocoReportTarget(project)) {
+            return
+        }
+        executionData project.tasks.test.jacoco.destinationFile
+        dependsOn project.tasks.test
+    }
+}
+
+task jacocoMergedReport(type: JacocoReport, dependsOn: [jacocoMerge]) {
+    executionData jacocoMerge.destinationFile
+    gradle.afterProject { project, state ->
+        if (!isJacocoReportTarget(project)) {
+            return
+        }
+        sourceDirectories.from(files([project.sourceSets.main.allJava.srcDirs]))
+        classDirectories.from(project.sourceSets.main.output)
+    }
+}
+
+jacocoMerge.finalizedBy jacocoMergedReport
