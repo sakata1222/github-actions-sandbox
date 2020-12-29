@@ -47,7 +47,7 @@ class JacocoSummaryReport extends DefaultTask {
   def static buildMd(Map current, Map previous) {
     def mdLines = [
             "|Type|Missed/Total|Coverage(%)|",
-            "|:---|---:|:---|"
+            "|:---|---:|---:|"
     ]
     def toMissedCol = {
       (it.missed as String) + "/" + (it.total as String)
