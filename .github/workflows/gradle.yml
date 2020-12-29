@@ -27,7 +27,7 @@ jobs:
         run: |
           echo "::set-output name=date::$(/bin/date +%s)"
         shell: bash
-      - name: Restore coverage of the target branch
+      - name: Restore coverage of the target branch to report coverage changes
         uses: actions/cache@v2
         if: github.event_name == 'pull_request'
         with:

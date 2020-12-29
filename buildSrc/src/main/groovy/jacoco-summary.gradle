@@ -1,0 +1,101 @@
+import groovy.json.JsonBuilder
+import groovy.json.JsonSlurper
+import org.gradle.api.DefaultTask
+import org.gradle.api.tasks.InputFile
+import org.gradle.api.tasks.Optional
+import org.gradle.api.tasks.OutputFile
+import org.gradle.api.tasks.TaskAction
+
+class JacocoSummaryReport extends DefaultTask {
+  static final def TARGET_TYPES = ['INSTRUCTION', 'BRANCH']
+
+  @InputFile
+  File jacocoXmlFile
+
+  @Optional
+  @InputFile
+  File previousJson
+
+  @OutputFile
+  File outputJson
+
+  @OutputFile
+  File outputMd
+
+  @TaskAction
+  def report() {
+    previousJson = previousJson ?: outputJson
+    def previousMap = previousJson.with { it.exists() ? new JsonSlurper().parseText(it.text) as Map : null }
+    def currentMap = parseXml()
+    outputJson.write new JsonBuilder(currentMap).toPrettyString()
+    def md = buildMd(currentMap, previousMap)
+    outputMd.write md
+  }
+
+  def parseXml() {
+    def parser = new XmlParser()
+    parser.setFeature("http://apache.org/xml/features/disallow-doctype-decl", false)
+    parser.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false)
+    def xmlObj = parser.parse(jacocoXmlFile)
+    xmlObj.counter.findAll {
+      TARGET_TYPES.contains(it.@type)
+    }.collectEntries {
+      [it.@type, new JacocoJson(it.@type as String, it.@covered as int, it.@missed as int)]
+    }
+  }
+
+  def static buildMd(Map current, Map previous) {
+    def mdLines = [
+            "|Type|Missed/Total|Coverage(%)|",
+            "|:---|---:|:---|"
+    ]
+    def toMissedCol = {
+      (it.missed as String) + "/" + (it.total as String)
+    }
+    def toPercentageCol = {
+      String.format("%.2f", it.coverageInPercent)
+    }
+    def comparedCol = { String currentCol, String previousCol ->
+      if (currentCol == previousCol) {
+        return "(not changed) " + currentCol
+      } else {
+        return "~~" + previousCol + "~~ " + currentCol
+      }
+    }
+
+    mdLines.addAll current.entrySet().stream()
+            .map {
+              def type = it.key as String
+              def currentLine = it.value
+              def previousLine = previous?."${type}"
+              if (previousLine != null) {
+                return "|" + type.toLowerCase() +
+                        "|" + comparedCol(toMissedCol(currentLine), toMissedCol(previousLine)) +
+                        "|" + comparedCol(toPercentageCol(currentLine), toPercentageCol(previousLine)) + "%|"
+              } else {
+                return "|" + type.toLowerCase() +
+                        "|" + toMissedCol(currentLine) +
+                        "|" + toPercentageCol(currentLine) + "%|"
+              }
+            }
+            .collect()
+    mdLines.join("\n") + "\n"
+  }
+
+  static class JacocoJson {
+    final String type
+    final int covered
+    final int missed
+    final int total
+    final float coverageInPercent
+
+    JacocoJson(String type, int covered, int missed) {
+      this.type = type
+      this.covered = covered
+      this.missed = missed
+      this.total = covered + missed
+      this.coverageInPercent = (covered as float) / (total as float) * 100
+    }
+  }
+}
+
