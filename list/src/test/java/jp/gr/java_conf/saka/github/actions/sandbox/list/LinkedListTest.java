@@ -12,7 +12,7 @@ import org.junit.jupiter.api.Test;
 
 public class LinkedListTest {
 
-  @Test()
+  @Test
   public void testGetThrowsNPW() {
     LinkedList list = new LinkedList();
     assertThrows(IndexOutOfBoundsException.class, () -> {
@@ -46,8 +46,14 @@ public class LinkedListTest {
 
     list.add("one");
     list.add("two");
+    list.add("three");
     assertTrue(list.remove("one"));
 
+    assertEquals(2, list.size());
+    assertEquals("two", list.get(0));
+    assertEquals("three", list.get(1));
+
+    assertTrue(list.remove("three"));
     assertEquals(1, list.size());
     assertEquals("two", list.get(0));
 
