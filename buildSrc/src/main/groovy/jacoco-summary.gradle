@@ -1,7 +1,13 @@
 import groovy.json.JsonBuilder
 import groovy.json.JsonSlurper
 import org.gradle.api.DefaultTask
-import org.gradle.api.tasks.*
+import org.gradle.api.tasks.Input
+import org.gradle.api.tasks.InputFile
+import org.gradle.api.tasks.Optional
+import org.gradle.api.tasks.OutputFile
+import org.gradle.api.tasks.TaskAction
+
+import java.util.stream.Collectors
 
 class JacocoSummaryReport extends DefaultTask {
   static final def TARGET_TYPES = ['INSTRUCTION', 'BRANCH']
@@ -49,8 +55,8 @@ class JacocoSummaryReport extends DefaultTask {
 
   def static buildMd(Map current, Map previous) {
     def mdLines = [
-            "|Type|Missed/Total|Coverage(%)|",
-            "|:---|---:|---:|"
+            ['Type', 'Missed/Total', 'Coverage(%)'],
+            [':---', '---:', '---:']
     ]
     def toMissedCol = {
       (it.missed as String) + "/" + (it.total as String)
@@ -65,24 +71,40 @@ class JacocoSummaryReport extends DefaultTask {
         return "~~" + previousCol + "~~ " + currentCol
       }
     }
-
     mdLines.addAll current.entrySet().stream()
             .map {
               def type = it.key as String
               def currentLine = it.value
               def previousLine = previous?."${type}"
               if (previousLine != null) {
-                return "|" + type.toLowerCase() +
-                        "|" + comparedCol(toMissedCol(currentLine), toMissedCol(previousLine)) +
-                        "|" + comparedCol(toPercentageCol(currentLine), toPercentageCol(previousLine)) + "%|"
+                return [
+                        type.toLowerCase(),
+                        comparedCol(toMissedCol(currentLine), toMissedCol(previousLine)),
+                        comparedCol(toPercentageCol(currentLine), toPercentageCol(previousLine))
+                ]
               } else {
-                return "|" + type.toLowerCase() +
-                        "|" + toMissedCol(currentLine) +
-                        "|" + toPercentageCol(currentLine) + "%|"
+                return [
+                        type.toLowerCase(),
+                        toMissedCol(currentLine),
+                        toPercentageCol(currentLine)
+                ]
               }
             }
             .collect()
-    mdLines.join("\n") + "\n"
+    for (int j = 0; j < mdLines.get(0).size(); j++) {
+      int colMaxLength = mdLines.stream()
+              .mapToInt {
+                it.get(j).length()
+              }.max().getAsInt()
+      for (int i = 0; i < mdLines.size(); i++) {
+        mdLines.get(i).set(j, mdLines.get(i).get(j).padLeft(colMaxLength))
+      }
+    }
+    mdLines.stream()
+            .map {
+              it.stream().collect(Collectors.joining("|", "|", "|"))
+            }
+            .collect(Collectors.joining("\n", "", "\n"))
   }
 
   static class JacocoJson {
