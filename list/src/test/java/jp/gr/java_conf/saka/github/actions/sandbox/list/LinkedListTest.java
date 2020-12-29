@@ -3,48 +3,65 @@
  */
 package jp.gr.java_conf.saka.github.actions.sandbox.list;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.*;
-
 public class LinkedListTest {
-    @Test public void testConstructor() {
-        LinkedList list = new LinkedList();
-        assertEquals(0, list.size());
-    }
 
-    @Test public void testAdd() {
-        LinkedList list = new LinkedList();
+  @Test()
+  public void testGetThrowsNPW() {
+    LinkedList list = new LinkedList();
+    assertThrows(IndexOutOfBoundsException.class, () -> {
+      @SuppressWarnings("unused")
+      var ignored = list.get(0);
+    });
+  }
 
-        list.add("one");
-        assertEquals(1, list.size());
-        assertEquals("one", list.get(0));
+  @Test
+  public void testConstructor() {
+    LinkedList list = new LinkedList();
+    assertEquals(0, list.size());
+  }
 
-        list.add("two");
-        assertEquals(2, list.size());
-        assertEquals("two", list.get(1));
-    }
+  @Test
+  public void testAdd() {
+    LinkedList list = new LinkedList();
 
-    @Test public void testRemove() {
-        LinkedList list = new LinkedList();
+    list.add("one");
+    assertEquals(1, list.size());
+    assertEquals("one", list.get(0));
 
-        list.add("one");
-        list.add("two");
-        assertTrue(list.remove("one"));
+    list.add("two");
+    assertEquals(2, list.size());
+    assertEquals("two", list.get(1));
+  }
 
-        assertEquals(1, list.size());
-        assertEquals("two", list.get(0));
+  @Test
+  public void testRemove() {
+    LinkedList list = new LinkedList();
 
-        assertTrue(list.remove("two"));
-        assertEquals(0, list.size());
-    }
+    list.add("one");
+    list.add("two");
+    assertTrue(list.remove("one"));
 
-    @Test public void testRemoveMissing() {
-        LinkedList list = new LinkedList();
+    assertEquals(1, list.size());
+    assertEquals("two", list.get(0));
 
-        list.add("one");
-        list.add("two");
-        assertFalse(list.remove("three"));
-        assertEquals(2, list.size());
-    }
+    assertTrue(list.remove("two"));
+    assertEquals(0, list.size());
+  }
+
+  @Test
+  public void testRemoveMissing() {
+    LinkedList list = new LinkedList();
+
+    list.add("one");
+    list.add("two");
+    assertFalse(list.remove("three"));
+    assertEquals(2, list.size());
+  }
 }
