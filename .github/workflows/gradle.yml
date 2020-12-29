@@ -22,6 +22,19 @@ jobs:
           java-version: 11
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
+      - name: Get Date
+        id: get-date
+        run: |
+          echo "::set-output name=date::$(/bin/date +%s)"
+        shell: bash
+      - name: Restore coverage of the target branch
+        uses: actions/cache@v2
+        if: github.event_name == 'pull_request'
+        with:
+          path: |
+            build/reports/jacoco/jacocoMergedReport/jacoco_summary.json
+          key: no-cache-hit-jacoco-report-json-${{ steps.get-date.outputs.date }}
+          restore-keys: refs/heads/${{ github.base_ref }}-jacoco-report-json
       - name: Build with Gradle
         run: ./gradlew build jacocoMergedReport
       - name: Report coverage
@@ -37,3 +50,10 @@ jobs:
               repo: context.repo.repo,
               body: `${report}`
             })
+      - name: Cache Report
+        uses: actions/cache@v2
+        if: github.event_name == 'push'
+        with:
+          path: |
+            build/reports/jacoco/jacocoMergedReport/jacoco_summary.json
+          key: ${{ github.ref }}-jacoco-report-json-${{ hashFiles('build/reports/jacoco/jacocoMergedReport/jacoco_summary.json') }}

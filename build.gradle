@@ -76,8 +76,12 @@ task jacocoMergedReport(type: JacocoReport, dependsOn: [jacocoMerge]) {
             def toPercentageCol = {
                 String.format("%.2f", it.percentage)
             }
+            def notChanged = ""
+            if (prev == current) {
+                notChanged = "(not changed)"
+            }
             if (prev == null || prev == current) {
-                return "|" + type.toLowerCase() +
+                return "|" + type.toLowerCase() + notChanged +
                         "|" + toMissedCol(current) +
                         "|" + toPercentageCol(current) + "%|"
             } else {
