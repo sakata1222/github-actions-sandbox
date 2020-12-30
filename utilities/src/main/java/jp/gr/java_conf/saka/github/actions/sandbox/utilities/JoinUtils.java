@@ -6,6 +6,10 @@ package jp.gr.java_conf.saka.github.actions.sandbox.utilities;
 import jp.gr.java_conf.saka.github.actions.sandbox.list.LinkedList;
 
 class JoinUtils {
+
+    private JoinUtils() {
+    }
+
     public static String join(LinkedList source) {
         StringBuilder result = new StringBuilder();
         for (int i = 0; i < source.size(); ++i) {
