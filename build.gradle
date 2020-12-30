@@ -8,10 +8,6 @@ repositories {
 }
 
 def static isJacocoReportTarget(project) {
-    def excludes = ['utilities'] // this project does not have any tests
-    if (excludes.contains(project.name)) {
-        return false
-    }
     if (project == project.rootProject) {
         return false
     }

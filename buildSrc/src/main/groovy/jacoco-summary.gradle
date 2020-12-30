@@ -10,14 +10,21 @@ import org.gradle.api.tasks.TaskAction
 import java.util.stream.Collectors
 
 class JacocoSummaryReport extends DefaultTask {
-  static final def TARGET_TYPES = ['INSTRUCTION', 'BRANCH']
+  static final def DEFAULT_TARGET_TYPES = ['INSTRUCTION', 'BRANCH', 'LINE']
 
   @InputFile
   File jacocoXmlFile
 
+  @Input
+  boolean diffEnabled = true
+
   @Optional
   @InputFile
   File previousJson
+
+  @Optional
+  @Input
+  List<String> targetTypes
 
   @Input
   boolean stdout = false
@@ -30,8 +37,9 @@ class JacocoSummaryReport extends DefaultTask {
 
   @TaskAction
   def report() {
-    previousJson = previousJson ?: outputJson
-    def previousMap = previousJson.with { it.exists() ? new JsonSlurper().parseText(it.text) as Map : null }
+    previousJson = diffEnabled ? (previousJson ?: outputJson) : null
+    targetTypes = targetTypes ?: DEFAULT_TARGET_TYPES
+    def previousMap = previousJson?.exists() ? new JsonSlurper().parseText(previousJson.text) as Map : null
     def currentMap = parseXml()
     outputJson.write new JsonBuilder(currentMap).toPrettyString()
     def md = buildMd(currentMap, previousMap)
@@ -46,23 +54,21 @@ class JacocoSummaryReport extends DefaultTask {
     parser.setFeature("http://apache.org/xml/features/disallow-doctype-decl", false)
     parser.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false)
     def xmlObj = parser.parse(jacocoXmlFile)
-    xmlObj.counter.findAll {
-      TARGET_TYPES.contains(it.@type)
-    }.collectEntries {
+    xmlObj.counter.collectEntries {
       [it.@type, new JacocoJson(it.@type as String, it.@covered as int, it.@missed as int)]
     }
   }
 
-  def static buildMd(Map current, Map previous) {
+  def buildMd(Map current, Map previous) {
     def mdLines = [
-            ['Type', 'Missed/Total', 'Coverage(%)'],
+            ['Type', 'Missed/Total', 'Coverage'],
             [':---', '---:', '---:']
     ]
     def toMissedCol = {
       (it.missed as String) + "/" + (it.total as String)
     }
     def toPercentageCol = {
-      String.format("%.2f", it.coverageInPercent)
+      String.format("%.2f %%", it.coverageInPercent)
     }
     def comparedCol = { String currentCol, String previousCol ->
       if (currentCol == previousCol) {
@@ -72,6 +78,9 @@ class JacocoSummaryReport extends DefaultTask {
       }
     }
     mdLines.addAll current.entrySet().stream()
+            .filter {
+              targetTypes.contains(it.key)
+            }
             .map {
               def type = it.key as String
               def currentLine = it.value
