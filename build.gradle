@@ -47,6 +47,7 @@ task jacocoSummary(type: JacocoSummaryReport, dependsOn: [jacocoMergedReport]) {
     outputJson = file(jacocoMergedReport.reports.xml.destination.parent + "/jacoco_summary.json")
     outputMd = file(jacocoMergedReport.reports.xml.destination.parent + "/jacoco_summary.md")
     stdout = true
+    diffEnabled = false
 }
 
 jacocoMerge.finalizedBy jacocoMergedReport
