@@ -1,6 +1,7 @@
 plugins {
     id "com.github.spotbugs" version "4.6.0"
     id 'jacoco'
+    id "com.github.sakata1222.jacoco-markdown" version "1.0.0"
 }
 
 repositories {
@@ -42,12 +43,14 @@ task jacocoMergedReport(type: JacocoReport, dependsOn: [jacocoMerge]) {
     }
 }
 
-task jacocoSummary(type: JacocoSummaryReport, dependsOn: [jacocoMergedReport]) {
-    jacocoXmlFile = jacocoMergedReport.reports.xml.destination
-    outputJson = file(jacocoMergedReport.reports.xml.destination.parent + "/jacoco_summary.json")
-    outputMd = file(jacocoMergedReport.reports.xml.destination.parent + "/jacoco_summary.md")
-    stdout = true
+task jacocoSummary(type: jp.gr.java_conf.spica.plugin.gradle.jacoco.JacocoMarkdownTask) {
+    jacocoReportTask jacocoMergedReport // auto configuration for the JacocoReportTask
 }
 
+task build {
+
+}
+
+build.finalizedBy jacocoMerge
 jacocoMerge.finalizedBy jacocoMergedReport
 jacocoMergedReport.finalizedBy jacocoSummary

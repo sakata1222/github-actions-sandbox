@@ -35,7 +35,7 @@ jobs:
         if: github.event_name == 'pull_request'
         with:
           path: |
-            build/reports/jacoco/jacocoMergedReport/jacoco_summary.json
+            build/reports/jacoco/jacocoMergedReport/jacocoSummary.json
           key: no-cache-hit-jacoco-report-json-${{ steps.get-date.outputs.date }}
           restore-keys: refs/heads/${{ github.base_ref }}-jacoco-report-json
 
@@ -48,7 +48,7 @@ jobs:
         with:
           script: |
             const fs = require('fs')
-            const report = fs.readFileSync('build/reports/jacoco/jacocoMergedReport/jacoco_summary.md')
+            const report = fs.readFileSync('build/reports/jacoco/jacocoMergedReport/jacocoSummary.md')
             github.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
@@ -68,5 +68,5 @@ jobs:
         if: github.event_name == 'push'
         with:
           path: |
-            build/reports/jacoco/jacocoMergedReport/jacoco_summary.json
-          key: ${{ github.ref }}-jacoco-report-json-${{ hashFiles('build/reports/jacoco/jacocoMergedReport/jacoco_summary.json') }}
+            build/reports/jacoco/jacocoMergedReport/jacocoSummary.json
+          key: ${{ github.ref }}-jacoco-report-json-${{ hashFiles('build/reports/jacoco/jacocoMergedReport/jacocoSummary.json') }}
